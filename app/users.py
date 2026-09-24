@@ -12,14 +12,11 @@ from fastapi_users.authentication import (
     JWTStrategy,
 )
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
-from fastapi_users.password import PasswordHelper
 from httpx_oauth.clients.google import GoogleOAuth2
-from passlib.context import CryptContext
-
 from app.db import get_user_db
 from app.models.user_model import User, UserRole, VerificationStatus
 from app.utils.emails import send_welcome_email
-
+from pwdlib import PasswordHash
 load_dotenv()
 
 SECRET = os.getenv("SECRET", "SUPER_SECRET_KEY")
@@ -29,9 +26,7 @@ google_oauth_client = GoogleOAuth2(
     os.getenv("GOOGLE_OAUTH_CLIENT_SECRET", ""),
 )
 
-bcrypt_context = CryptContext(schemes=["bcrypt_sha256"], deprecated="auto")
-custom_password_helper = PasswordHelper(bcrypt_context)
-
+password_hash = PasswordHash.recommended()
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     reset_password_token_secret = SECRET
@@ -39,7 +34,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
 
     def __init__(self, user_db):
         super().__init__(user_db)
-        self.password_helper = custom_password_helper
+        self.password_helper = password_hash
 
     async def create(
         self,
